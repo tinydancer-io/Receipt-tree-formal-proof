@@ -1,0 +1,37 @@
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{etoolbox}
+\usepackage{enumitem}
+\usepackage{breakcites}
+
+\usepackage{booktabs}
+\usepackage{threeparttable}
+% \usepackage{pgfplots}
+
+\input{latexdefs}
+
+\pagestyle{plain}
+
+\usepackage{titling}
+\settowidth{\thanksmarkwidth}{*}
+\setlength{\thanksmargin}{0.05em}
+
+\begin{document}
+
+\title{\texttt{tinydancer} Receipt Commitment}
+\author{\texttt{tinydancer}}
+\date{}
+
+\maketitle
+
+\vspace{-15mm}
+\input{intro}
+\input{definition}
+\input{construction}
+\input{proof}
+
+\newpage
+\bibliographystyle{acm}
+\bibliography{main}
+
+\end{document}

@@ -1,0 +1,765 @@
+
+\newcommand{\Deposit}{\ms{Deposit}}
+\newcommand{\Withdraw}{\ms{Withdraw}}
+\newcommand{\decimals}{\ms{decimals}}
+\newcommand{\amount}{\ms{amount}}
+\newcommand{\crypto}{\ms{zk}\text{-}\ms{proof}}
+\newcommand{\pirange}{\pi_{\ms{range}}}
+
+\newcommand{\dec}{\ms{decimals}}
+\newcommand{\finalbalance}{\ms{final}\text{-}\ms{balance}}
+\newcommand{\currpending}{\ms{curr}\text{-}\ms{pending}}
+
+\newcommand{\writable}{\ms{write}}
+\newcommand{\signer}{\ms{sign}}
+\newcommand{\none}{\ms{none}}
+
+\newcommand{\CreateAccount}{\ms{CreateAccount}}
+\newcommand{\UpdateAccountPK}{\ms{UpdateAccountPK}}
+\newcommand{\DisableInboundTransfers}{\ms{DisableInboundTransfers}}
+\newcommand{\EnableInboundTransfers}{\ms{EnableInboundTransfers}}
+
+\newcommand{\pizero}{\pi_{\ms{zero}\text{-}\ms{balance}}}
+\newcommand{\piequality}{\pi_{\ms{equality}}}
+\newcommand{\pivalidity}{\pi_{\ms{validity}}}
+
+\newcommand{\current}{\ms{current}}
+\newcommand{\new}{\ms{new}}
+
+\newcommand{\TransferWithRangeProof}{\ms{TransferWithRangeProof}}
+\newcommand{\TransferWithValidityProof}{\ms{TransferWithValidityProof}}
+
+\newcommand{\ConfigureMint}{\ms{ConfigureMint}}
+
+\clearpage
+
+\section{Instructions}
+\label{sec:instructions}
+
+\red{
+  The specifications of the instructions $\ConfigureMint$,
+  $\UpdateTransferAuditor$, and $\Transfer$ will be included after these
+  instructions become more stabilized. This section should include some
+  discussion of the pre-instruction and other high-level implementation details.
+}
+
+\subsection{Managing ZK-Token Mints}
+
+
+
+\todo{Discuss the next two instructions}
+
+
+\begingroup
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.75em}
+
+
+\subsubsection{$\ConfigureMint$}
+To be written...
+
+\subsubsection{$\UpdateTransferAuditor$}
+To be written...
+
+\endgroup
+
+\newpage
+\subsection{Managing ZK-Token Accounts}
+Users can manage \texttt{ZK-Token} accounts via a number of instructions. Among
+these, the $\CloseAccount$, $\UpdateAccountPK$, and $\Withdraw$
+instructions require zero-knowledge proofs that certify the validity of the
+instructions and state data.
+
+Each \texttt{ZK-Token} account is uniquely associated with a single
+\texttt{Token} account. These \texttt{ZK-Token} accounts can be created or closed
+using the $\CreateAccount$ and $\CloseAccount$ instructions.
+\begin{itemize}
+  \item The $\CreateAccount$ instruction creates a \texttt{ZK-Token} account at the 
+    address derived as a PDA from the linked \texttt{Token} account
+    and its associated \texttt{Token} mint. The account's encryption key is set
+    to be the ElGamal public key that is specified as part of the
+    instruction data. The pending and available balance is set to be default
+    encryptions of zero.
+
+  \item The $\CloseAccount$ instruction closes a \texttt{ZK-Token} account,
+    transferring any Lamports to a destination account that is specified in the
+    instruction. It is required that the account to be closed does not hold any
+    funds. The account's pending balance must be empty (a deterministic
+    encryption of 0). The account's available balance must be an encryption of 0
+    and a proper zero-balance proof (Section~\ref{sec:zero-balance-proof}) must
+    be provided with the instruction.
+\end{itemize}
+
+\noindent
+Funds can be transferred between regular \texttt{Token} accounts and its
+associated \texttt{ZK-Token} accounts via the $\Deposit$ and $\Withdraw$
+instructions.
+\begin{itemize}
+  \item The $\Deposit$ instruction transfers funds from a \texttt{Token} account
+    to its associated \texttt{ZK-Token} account. 
+    \begin{itemize}
+      \item On the \texttt{Token} side, funds are transferred from
+        the source \texttt{Token} account to an omnibus \texttt{Token} account
+        associated with the token mint.
+      \item On the \texttt{ZK-Token} side, the pending balance is
+        (homomorphically) incremented by the deposit amount.
+    \end{itemize}
+
+  \item The $\Withdraw$ instruction transfers funds from a \texttt{ZK-Token}
+    account to its associated \texttt{Token} account. It works in reverse to the
+    $\Deposit$ instruction: funds are transferred from the omnibus
+    \texttt{Token} account to a user's \texttt{Token} account, and the encrypted
+    available balance in the \texttt{ZK-Token} account is decremented by the
+    withdraw amount. As funds are removed from the \texttt{ZK-Token} account, a
+    transaction must contain a proper range proof (Section~\ref{sec:rangeproof})
+    that certifies that there are enough funds in the \texttt{ZK-Token} account.
+\end{itemize}
+
+\noindent
+In the \texttt{ZK-Token} program, an account owner can update the
+encryption key associated with an account by the $\UpdateAccountPK$ instruction.
+
+\begin{itemize}
+  \item The $\UpdateAccountPK$ updates the ElGamal public key in a
+    \texttt{ZK-Token} account. If the key is updated in an account, the current
+    pending and available balance that is encrypted under the older key become
+    invalid. Therefore, to update the key in an account, it is required that:
+    \begin{itemize}
+      \item The pending balance is empty (deterministic encryption of 0).
+        The instruction can, for instance, be preceded by an
+        $\ApplyPendingBalance$ instruction.
+
+      \item The $\UpdateAccountPK$ must include a spendable balance that is
+        encrypted under the new public key and an equality proof
+        (Section~\ref{sec:equality-proof}) that certifies the validity of the
+        newly encrypted spendable balance. The \texttt{ZK-Token} program verifies
+        the proof and then replaces the encrypted spendable balance with the
+        new ciphertext (in addition to updating the key).
+
+    \end{itemize}
+\end{itemize}
+
+\noindent
+As discussed in Section~\ref{sec:overview-design}, instructions that require
+zero-knowledge proofs may be sucsceptible to front-running attacks. As
+zero-knowledge proofs are verified with respect to an account state, they can be
+invalidated if the account state changes before the proofs are actually
+processed. The funds in \texttt{ZK-Token} accounts are divided into
+\emph{pending} balance and \emph{available} balance such that $\Withdraw$ and
+$\Transfer$, the instructions that are projected to be used frequently, are not
+susceptible to these type of attacks. Funds that are sent to a \texttt{ZK-Token}
+account are always aggregated into its pending balance, and funds that are sent
+from a \texttt{ZK-Token} account are always subtracted from its available
+balance. An account's pending balance can be added to its available balance via
+the $\ApplyPendingBalance$ instruction.
+\begin{itemize}
+  \item The $\ApplyPendingBalance$ instruction aggregates a \texttt{ZK-Token}
+    account's pending balance into its avaialble balance. After the instruction
+    is executed, the account's available balance becomes the sum of its pending
+    and available balance. The account's the pending balance is set to be empty
+    (a deterministic encryption of 0). 
+\end{itemize}
+
+\noindent
+In contrast to the $\Withdraw$ and $\Transfer$ instructions, the $\CloseAccount$
+and $\UpdateAccountPK$ instructions are still susceptible to front-running. The
+\texttt{ZK-Token} program provide instructions to defend aginst potential
+attacks.
+\begin{itemize}
+  \item The $\DisableInboundTransfers$ instruction disables an account from
+    accepting any incoming transfers.
+
+  \item The $\EnableInboundTransfers$ instruction enables an account to
+    accepting incoming transfers.
+\end{itemize}
+If any $\CloseAccount$ and $\UpdateAccountPK$ instructions start failing, then
+any inbound transfer to the account should be disabled first before submitting any
+of these instructions.
+
+
+\begingroup
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.75em}
+
+\newpage
+\subsubsection{$\CreateAccount$}
+Create a \texttt{ZK-Token} account.
+
+The account address is a PDA, derived from the \texttt{Token} mint and linked
+\texttt{Token} account. Ownership is held in the linked \texttt{Token} account.
+The new account is rent-exempt.
+
+The instruction fails if the \texttt{ZK-Token} account already exists.
+
+\vspace{0.5em}
+
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$, $\signer$] The funding account for rent (must be a system
+    account)
+  \item[$\writable$] The new \texttt{ZK-Token} account to create
+  \item[] Corresponding \texttt{Token} account
+  \item[] System program
+  \item[$\signer$/$\none$] The single account owner or the multisig account owner
+  \item[$\signer$, $\opt$]  Required $M$ signer accounts for the \texttt{Token}
+    Multisig account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item $\pk$: The ElGamal public key to be associated with the new account.
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+
+\newpage
+\subsubsection{$\CloseAccount$}
+Close a \texttt{ZK-Token} account by transferring all lamports it holds to the
+destination account.
+
+The account must not hold any tokens in its pending or available
+balances. Use $\DisableInboundTransfers$ to block inbound transfers first if
+necessary.
+
+\vspace{0.5em}
+
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$] The \texttt{ZK-Token} account to close
+  \item[] Corresponding \texttt{Token} account
+  \item[$\writable$] The destination account
+  \item[] Instruction sysvar
+  \item[$\signer$/$\none$] The single account owner or the multisig account owner
+  \item[$\signer$, $\opt$]  Required $M$ signer accounts for the \texttt{Token}
+    Multisig account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item $\ct_\available$: The current encrypted available balance in the
+    \texttt{ZK-Token} account to close.
+
+    This component is included as part of the instruction so that the
+    ciphertext-proof pair $(\ct_\available, \pizero)$ can be verified as
+    a pre-instruction.
+
+  \item $\pizero$: Zero-knowledge proof certifying that $\ct_\available$
+    encrypts $0$.
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item \textit{Pre-instruction}: Zero-knowledge proof verification
+    $(\ct_\available, \pizero)$
+  \item \textit{In-program}: The available balance in the \texttt{ZK-Token} account
+    to be closed is equal to $\ct_\available$ in the instruction data.
+  \item \textit{In-program}: The pending balance $\ct_\pending$ in the
+    \texttt{ZK-Token} account to be closed is a deterministic encryption of 0:
+    \[ \ct_\pending = (0H + 0G, 0P) .\]
+\end{itemize}
+
+
+\newpage
+\subsubsection{$\Deposit$}
+Transfer funds from a \texttt{Token} account to the corresponding
+\texttt{ZK-Token} account.
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$] The source \texttt{Token} account
+  \item[$\writable$] The destination \texttt{ZK-Token} account
+  \item[] The destination's corresponding \texttt{Token} account
+  \item[$\writable$] The omnibus \texttt{Token} account for this token mint
+  \item[] The token mint
+  \item[] The \texttt{Token} program
+  \item[$\signer$/$\none$] The single account owner or the multisig account owner
+  \item[$\signer$, $\opt$]  Required $M$ signer accounts for the \texttt{Token}
+    Multisig account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}[leftmargin=1.25cm]
+  \item $(\amount, \dec)$: The deposit amount and decimals
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+\newpage
+\subsubsection{$\Withdraw$}
+Transfer funds from a \texttt{ZK-Token} account to a regular \texttt{Token}
+account.
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$] The source \texttt{ZK-Token} account
+  \item[] The corresponding \texttt{Token} account to source
+  \item[$\writable$] The destination \texttt{Token} account
+  \item[] The token mint
+  \item[$\writable$] The omnibus \texttt{Token} account for this token mint
+  \item[] The \texttt{Token} program
+  \item[] Instructions sysvar
+  \item[$\signer$/$\none$] The single source account owner or the multisig
+    source account owner
+  \item[$\signer$, $\opt$]  Required $M$ signer accounts for the \texttt{Token} Multisig
+    account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item $(\amount, \dec)$: The withdraw amount and decimals
+
+  \item $\ct_\available$: The expected encrypted available balance
+    \emph{after} $\amount$ is withdrawn from the \texttt{Token} account.
+
+    This component can be computed by the program itself; it is included
+    as part of the instruction so that the ciphertext-proof pair
+    $(\ct_\available, \pirange)$ can be verified as a pre-instruction.
+
+  \item $\pirange$: Zero-knowledge proof certifying that $\ct_\available$
+    encrypts a value $0 \le x < 2^{64}$.
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item \textit{Pre-instruction}: Zero-knowledge proof verification
+    $(\ct_\available, \pirange)$
+  \item \textit{In-program}: The algebraic relation to verify the
+    well-formedness of $\ct_\available$:
+    \[ \ct_\available = \ct'_\available - \ct_\amount \]
+    where $\ct'_\available$ is the current encrypted available balance in
+    the source \texttt{ZK-Token} account and $\ct_\amount = (x_\amount G, 0P)$
+    is the (deterministic) encryption of $\amount$.
+\end{itemize}
+
+
+\clearpage
+
+\subsubsection{$\UpdateAccountPK$}
+Update the ElGamal public key in a \texttt{ZK-Token} account.
+
+This instruction will fail if the pending balance is not empty and therefore,
+invoking the $\ApplyPendingBalance$ instruction prior to this instruction is
+recommended.
+
+If the account is heavily used, consider invoking $\DisableInboundTransfers$ in
+a separate transaction first to avoid new inbound transfers from causing this
+instruction to fail.
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$] The \texttt{ZK-Token} account to update
+  \item[] The corresponding \texttt{Token} account for the \texttt{ZK-Token}
+    account
+  \item[$\signer$/$\none$] The single account owner or the multisig account
+    owner
+  \item[$\signer$, $\opt$]  Required $M$ signer accounts for the \texttt{Token} Multisig
+    account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item $\pk_\new$: The new encryption key for the \texttt{ZK-Token} account.
+    
+  \item $\ct_\new$: The encrypted available balance under the new encryption
+    key~$\pk_\new$.
+
+  \item $\ct_\current$: The current encrypted available balance in the
+    \texttt{ZK-Token} account to update.
+
+    This component is included as part of the instruction so that the
+    ciphertexts and proof $(\ct_\new, \ct_\current, \piequality)$ can be
+    verified as a pre-instruction.
+
+  \item $\piequality$: Zero-knowledge proof certifying that $\ct_\new$ and
+    $\ct_\current$ encrypt the same value.
+
+\end{itemize}
+
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item \textit{Pre-instruction}: Zero-knowledge proof verification
+    $\big((\ct_\current, \ct_\new), \pirange)\big)$
+  \item \textit{In-program}: The encrypted available balance in the
+    \texttt{ZK-Token} account to be updated is equal to $\ct_\current$ in the
+    instruction data.
+  \item \textit{In-program}: The pending balance $\ct_\pending$ in the
+    \texttt{ZK-Token} account to be updated is equal to a (deterministic)
+    encryption of 0:
+    \[ \ct_\pending = (0H + 0G, 0P) .\]
+  \end{itemize}
+
+\newpage
+\subsubsection{$\ApplyPendingBalance$}
+Apply the pending balance of a \texttt{ZK-Token} account to its available
+balance.
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$] The \texttt{ZK-Token} account
+  \item[] The corresponding \texttt{Token} account
+  \item[$\signer$/$\none$] The single account owner or the multisig account owner
+  \item[$\signer$, $\opt$] Required $M$ signer accounts for the \texttt{Token}
+    Multisig account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+
+
+\newpage
+\subsubsection{$\DisableInboundTransfers$}
+Disable incoming transfers to a \texttt{ZK-Token} account.
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$] The \texttt{ZK-Token} account
+  \item[] The corresponding \texttt{Token} account
+  \item[$\signer$/$\none$] The single account owner or the multisig account owner
+  \item[$\signer$, $\opt$] Required $M$ signer accounts for the \texttt{Token}
+    Multisig account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+
+\newpage
+\subsubsection{$\EnableInboundTransfers$}
+Enable incoming transfers to a \texttt{ZK-Token} account.
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2.5cm]
+  \item[$\writable$] The \texttt{ZK-Token} account
+  \item[] The corresponding \texttt{Token} account
+  \item[$\signer$/$\none$] The single account owner or the multisig account owner
+  \item[$\signer$, $\opt$] Required $M$ signer accounts for the \texttt{Token}
+    Multisig account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item[] (none)
+\end{itemize}
+
+\endgroup
+
+\newcommand{\PedComm}{\ms{PedComm}}
+\newcommand{\DecHandle}{\ms{DecHandle}}
+\newcommand{\lo}{\ms{lo}}
+\newcommand{\hi}{\ms{hi}}
+
+\newpage
+\subsection{Confidential Transfers}
+The most cryptographically advanced component of the \texttt{ZK-Token} program
+is the $\Transfer$ instruction. We refer to Section~\ref{sec:description} for the
+high level intuition behind how transfers are done in the \texttt{ZK-Token}
+program. Here, we provide some of the remaining implementation details for the
+$\Transfer$ instruction.
+
+\paragraph{Encrypting the transfer amount.} 
+As described in
+Section~\ref{sec:description}, a transfer amount $0 \le x \le 2^{64}$ is
+encrypted as two 32-bit numbers $\xlo$ and $\xhi$ such that $x = \xlo +
+2^{32} \cdot \xhi$. These two numbers must be encrypted under three public keys that are
+associated with the source, destination, and auditor accounts for the transfer.
+Recall from Section~\ref{sec:encryption} that an ElGamal ciphertext consists of
+two components:
+\begin{itemize}
+  \item The \emph{Pedersen commitment} component that depends on the message to
+    be encrypted, but is independent of the public key.
+  \item The \emph{decryption handle} component that depends on the public key,
+    but is independent of the message to be encrypted.
+\end{itemize}
+As the Pedersen commitment component is independent of public keys, it can be
+shared among encryption of a single message under multiple public keys.
+Therefore, the ElGamal ciphertext that encrypts a transfer amount consist of the
+following components:
+\begin{itemize}
+  \item \emph{Message commitments}: 
+    \begin{itemize}
+      \item $\comm_{\xlo} = \PedComm(\xlo)$
+      \item $\comm_{\xhi} = \PedComm(\xhi)$
+    \end{itemize}
+
+  \item \emph{Decryption handles for $\xlo$}: 
+    \begin{itemize}
+      \item $\handle_{\source, \lo} = \DecHandle_\lo(\pk_\source)$
+      \item $\handle_{\dest, \lo} = \DecHandle_\lo(\pk_\dest)$
+      \item $\handle_{\auditor, \lo} = \DecHandle_\lo(\pk_\auditor)$
+    \end{itemize}
+
+  \item \emph{Decryption handles for $\xhi$}: 
+    \begin{itemize}
+      \item $\handle_{\source, \hi} = \DecHandle_\hi(\pk_\source)$
+      \item $\handle_{\dest, \hi} = \DecHandle_\hi(\pk_\dest)$
+      \item $\handle_{\auditor, \hi} = \DecHandle_\hi(\pk_\auditor)$
+    \end{itemize}
+
+\end{itemize}
+
+\newcommand{\final}{\ms{final}}
+
+\paragraph{Zero-knowledge proofs.}
+A transfer instruction must include zero-knowledge proofs that consist of two
+parts:
+\begin{itemize}
+  \item \emph{Range proof}: This component should certify that the following
+    Pedersen commitments are for the messages of the correct range:
+    \begin{itemize}
+      \item The commitment $\comm_{\final} = \comm_{\available} - (\comm_{\xlo} +
+        2^{32} \cdot \comm_{\xhi})$ is a commitment of a 64-bit numbers where
+        $\comm_{\available}$ is the Pedersen commitment associated with the
+        source encrypted spendable balance.
+
+      \item The commitment $\comm_{\xlo}$ is a commitment of a 32-bit number.
+
+      \item The commitment $\comm_{\xhi}$ is a commitment of a 32-bit number.
+    \end{itemize}
+    As described in Section~\ref{sec:rangeproof}, instead of having three
+    independent range proofs for the three commitments, one can generate a
+    single aggregate range proof that certifies validity of the three
+    commitments.
+
+  \item \emph{Ciphertext validity proof}: This component should certify that the
+    decryption handles are generated correctly for each public keys
+    $\pk_\source$, $\pk_\dest$, and $\pk_\auditor$.
+
+\end{itemize}
+
+\paragraph{Two transfer instructions.}
+A single transfer instruction must contain the encrypted transfer amount and the
+zero-knowledge proofs certifying the validity of the ciphertexts. Currently, the
+size of a Solana program instruction is capped at 1232 bytes. This prevents the
+ciphertexts and the zero-knowledge proofs from fitting into a single transfer
+instruction. Therefore, the transfer instruction is split into two separate
+instructions, each containing independent ciphertext and zero-knowledge proof
+components of a transfer.
+\begin{itemize}
+  \item The $\TransferWithRangeProof$ instruction contains the Pedersen
+    commitments $\comm_{\xlo}$, $\comm_{\xhi}$ of the encrypted transfer amount
+    and the associated range proof certifying these commitments.
+
+  \item The $\TransferWithValidityProof$ instruction contains the decryption
+    handles 
+    \begin{itemize}
+      \item $\handle_{\source, \lo}$, $\handle_{\dest, \lo}$, $\handle_{\auditor, \lo}$, 
+      \item $\handle_{\source, \hi}$, $\handle_{\dest, \hi}$,
+        $\handle_{\auditor, \hi}$,
+    \end{itemize}
+    and the associated validity proofs for these handles.
+\end{itemize}
+
+\noindent
+A transfer of tokens between two \texttt{ZK-Token} accounts are fully executed
+only when both of these transfer instructions are executed by the
+\texttt{ZK-Token} program. 
+
+\todo{Discuss ephemeral state}
+
+
+\begingroup
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.75em}
+
+
+\newpage
+\subsubsection{$\TransferWithRangeProof$}
+
+\ignore{
+Transfers tokens confidentially from one account to another. 
+
+Along with $\TransferWithValidityProof$, this instruction is one of two transfer
+instructions that make up a full transfer. This instruction must include
+Pedersen commitments of the transfer amount and the associated
+rangeproof~\ref{sec:rangeproof}.
+
+This instruction will fail if:
+\begin{itemize}
+  \item Either the source or the destination is frozen
+  \item The destination has disabled incoming transfers by invoking
+    $\DisableInboundTransfers$
+\end{itemize}
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2cm]
+  \item[$\writable$] The source \texttt{ZK-Token} account
+  \item[] The corresponding \texttt{Token} account for the source
+    \texttt{ZK-Token} account
+  \item[$\writable$] The destination \texttt{ZK-Token} account
+  \item[] The corresponding \texttt{Token} account for the destination
+    \texttt{ZK-Token} account
+  \item[$\signer$/$\none$] The single source account owner or the multisig
+    source account owner
+  \item[$\signer$, $\opt$] Required $M$ signer accounts for the \texttt{Token} Multisig
+    account
+  \item[] The transfer auditor account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item $(\comm_\lo, \comm_\hi)$: Pedersen commitments of the 64-bit
+    transfer amount divided into two 32-bit values
+
+  \item $\comm_\source$: The expected Pedersen commitment of the source
+    \texttt{ZK-Token} account available balance.
+
+    This component can be computed by the program itself; it is included as part
+    of the instruction so that the range proof $\pirange$ can be verified as a
+    pre-instruction. \todo{This is contained in ephemeral state.}
+
+  \item \todo{ephemeral state}
+
+  \item $\pirange$: Zero-knowledge proof certifying that $\comm_\final$ is a
+    commitment to a 64-bit value and $\comm_\lo, \comm_\hi$ are commitments to
+    32-bit values.
+
+\end{itemize}
+
+\noindent
+\textit{Cryptographic checks}:
+\begin{itemize}
+  \item \textit{Pre-instruction}: Zero-knowledge proof verification
+    $(\comm_\final, \comm_\lo, \comm_\hi, \pirange)$
+  \item \textit{In-program}: Let $\comm_\available$ be the encrypted available
+    balance in the source \texttt{ZK-Token} account. The following relation must
+    be verified:
+    \[ \comm_\final = \comm_\available - (\comm_\lo + 2^{32} \cdot \comm_\hi) .\]
+  \item \textit{In-program}: \todo{ephemeral state}
+\end{itemize}
+
+}
+
+\newpage
+\subsubsection{$\TransferWithValidityProof$}
+
+\ignore{
+\todo{Need to update this instruction...}
+Transfers tokens confidentially from one account to another. 
+
+Along with $\TransferWithRangeProof$, this instruction is one of two transfer
+instructions that make up a full transfer. This instruction must include
+decryption handles for the encryption keys associated with the source,
+destination (see Section~\ref{sec:elgamal-description}) and auditor accounts as
+well as proofs that these decryption handles are well-formed (See
+Section~\ref{sec:rangeproof}). 
+
+This instruction will fail if:
+\begin{itemize}
+  \item Either the source or the destination is frozen
+  \item The destination has disabled incoming transfers by invoking
+    $\DisableInboundTransfers$
+\end{itemize}
+\vspace{0.5em}
+
+\noindent
+\textit{Addresses to be specified}:
+\begin{itemize}[leftmargin=2cm]
+  \item[$\writable$] The source ZK-Token account
+  \item[] The corresponding SPL Token account for the source ZK-Token account
+  \item[$\writable$] The destination ZK-Token account
+  \item[] The corresponding SPL Token account for the destination ZK-Token
+    account
+  \item[$\signer$/$\none$] The single source account owner or the multisig
+    source account owner
+  \item[$\signer$, $\opt$] Required $M$ signer accounts for the SPL Token Multisig
+    account
+  \item[] The transfer auditor account
+\end{itemize}
+
+\noindent
+\textit{Data to be specified}:
+\begin{itemize}
+  \item \todo{Need to update this part...}
+
+  \item $(\handle_\lo, \handle_\hi)$: The decryption handle components of the
+    ElGamal encryption of the 64-bit transfer amount divided into 32-bit values.
+
+  \item $\handle_\source$: The expected decryption handle of the source ZK-Token
+    account available balance.
+
+  \item $\pivalidity$: Zero-knowledge proof certifying that the decryption
+    handles $\handle_\lo, \handle_\hi$, and $\handle_\source$ are well-formed.
+
+\end{itemize}
+
+\noindent
+\textit{Pre-instruction verification}:
+\begin{enumerate}[leftmargin=1.25cm]
+  \item Instruction signatures
+
+  \item Validity proof $\big((\handle_\lo, \handle_\hi, \handle_\source),
+    \pivalidity\big)$
+\end{enumerate}
+
+\noindent
+\textit{In-program verification}
+\begin{enumerate}[leftmargin=1.25cm]
+  \item The encrypted available balance in the confidential account to be
+    updated is equal to $\ct_\current$ in the instruction data.
+\end{enumerate}
+
+
+\newpage
+
+\endgroup
+
+}
