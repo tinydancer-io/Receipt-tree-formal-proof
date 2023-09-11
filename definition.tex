@@ -1,3 +1,93 @@
-\section{Definitions}
+\section{Preliminaries}
 
 To be written...
+
+\paragraph{Basic notation.}
+\label{sec:notation}
+
+To be written...
+\begin{itemize}[noitemsep]
+    \item security parameters
+    \item probabilistic notation
+\end{itemize}
+
+\subsection{Collision Resistant Hash Function}
+
+To be written...
+
+\newcommand{\getsr}{\gets_{\ms{R}}}
+
+\begin{definition}[Collision Resistance Hash Function]
+    We say that a family of hash function $\calH_\calK = \{ H_k: \calX \to
+    \calY \}_{k \in \calK}$ for a key space $\calK = \calK_{\lambda \in \N}$,
+    domain $\calX = \calX_{\lambda \in \N}$ and range $\calY = \calY_{\lambda
+    \in \N}$ is \emph{collision resistant} if there exists a negligible
+    function $\negl(\lambda)$ such that for all efficient adversaries~$\calA$,
+    we have
+    \[ \Pr\Big[~ k \getsr \calK;~ (x_0, x_1) \gets \calA(\lambda, H_k);~
+    x_0 \neq x_1 \land H_\lambda(x_0) = H_\lambda(x_1) ~\Big] = \negl(\lambda)
+.\]
+\end{definition}
+
+\subsection{Accumulators}
+
+To be written...
+
+\newcommand{\Piacc}{\Pi_\ms{acc}}
+
+\begin{definition}[Accumulator]
+    A \emph{variable-length} accumulator scheme $\Piacc$ for an input domain
+    $\calX_{\lambda, \in \N}$, proof space $\calU_\lambda$, and commitment space
+    $\calC_{\lambda \in \N}$ consists of the set of efficient algorithms
+    $\Piacc = (\Commit, \Prove,
+    \allowbreak \Verify)$ with the following syntax:
+    \begin{itemize}
+        \item $\Commit(1^\lambda, x_1, \ldots, x_\ell) \to c$: On input a
+            security parameter $\lambda$ and a variable sequence of inputs
+            $x_1, \ldots, x_\ell \in \calX_\lambda$, the commitment algorithm
+            returns a commitment $c \in \calC_\lambda$.
+
+        \item $\Prove(1^\lambda, x_1, \ldots, x_\ell, i) \to u$: On input a
+            security parameter $\lambda$, a variable sequence of inputs $x_1,
+            \ldots, x_\ell \in \calX_\lambda$, and an index $i \in [\ell]$, the
+            proving algorithm returns a proof of inclusion $u \in \calU_\lambda$.
+
+        \item $\Verify(c, x, u) \to b$: On input a commitment $c \in
+            \calC_\lambda$, input $x \in \calX_\lambda$, and proof $u \in
+            \calU_\lambda$, the verification algorithm either accepts (returns
+            1) or rejects (returns 0).
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[Correctness]
+    An accumulator scheme $\Piacc = (\Commit, \Prove, \Verify)$ for an input
+    domain $\calX_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
+    commitment space $\calC_{\lambda \in \N}$ satisfies \emph{correctness} if
+    for all $\lambda, \ell \in \N$, inputs $x_1, \ldots, x_\ell \in
+    \calX_\lambda$, and index $i \in [\ell]$, we have
+    \[ \Pr \Big[~ c \gets \Commit(1^\lambda, x_1, \ldots, x_\ell) ;~ u \gets
+        \Prove(1^\lambda, x_1, \ldots, x_\ell, i) ;~ \Verify(c, x_i, u) = 1
+        ~\Big] = 1 .\]
+\end{definition}
+
+\newcommand{\polylog}{\ms{polylog}}
+\newcommand{\len}{\ms{len}}
+\newcommand{\logg}{{\ms{log}}}
+
+\begin{definition}[Compactness]
+    An accumulator scheme $\Piacc = (\Commit, \Prove, \Verify)$ for an input
+    domain $\calX_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
+    commitment space $\calC \in {\lambda \in \N}$ satisfies \emph{compactness}
+    if for all $\lambda, \ell \in \N$, inputs $x_1 \ldots, x_\ell \in
+    \calX_\lambda$, and index $i \in [\ell]$, there exist constant $\logg_\calC:
+    \N \to \N$ and logarithmic functions $\logg_{\calU}: \N \times \N \to \N$
+    such that
+    \[ \Pr \Big[~ c \gets \Commit(1^\lambda, x_1, \ldots, x_\ell) ;~ u \gets
+        \Prove(1^\lambda, x_1, \ldots, x_\ell, i) ;~ |c| = \log_\calC(\lambda) \land |u|
+        = \log_\calU(\lambda, \ell) ~\Big] = 1 .\]
+\end{definition}
+
+\begin{definition}[Soundness]
+    To be written...
+\end{definition}
+
