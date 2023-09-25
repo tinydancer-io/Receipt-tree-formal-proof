@@ -12,8 +12,8 @@ To be written...
 \end{itemize}
 
 \subsection{Collision Resistant Hash Function}
-
-To be written...
+Collision resistance refers to the property by which it is computationally 
+infeasible to find two distinct inputs xx and yy such that Hash(x)=Hash(y)Hash(x)=Hash(y), where HashHash denotes the hash function in question.
 
 \newcommand{\getsr}{\gets_{\ms{R}}}
 
@@ -30,10 +30,13 @@ To be written...
 \end{definition}
 
 \subsection{Accumulators}
-Cryptographic accumulators are space-efficient data structures that rely on 
-cryptographic primitives to achieve sub-linear time complexity for set-membership 
-operations. They use probabilistic data structures for space membership that 
-minimize space complexity. 
+
+Cryptographic accumulators are efficient data structures that use cryptographic 
+primitives to allow for fast and space-efficient set membership operations. They
+use probabilistic data structures to minimize the amount of space required to 
+store the accumulator, while still being able to efficiently prove set-membership.
+The time complexity of such data structures for set-membership operations is 
+preferred to be sub-linear.
 
 \newcommand{\Piacc}{\Pi_\ms{acc}}
 
