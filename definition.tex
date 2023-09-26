@@ -28,9 +28,9 @@ such that:
     \in \N}$ is \emph{collision resistant} if there exists a negligible
     function $\negl(\lambda)$ such that for all efficient adversaries~$\calA$,
     we have
-    \[ \Pr\Big[~ k \getsr \calK;~ (x_0, x_1) \gets \calA(\lambda, H_k);~
-    x_0 \neq x_1 \land H_\lambda(x_0) = H_\lambda(x_1) ~\Big] = \negl(\lambda)
-.\]
+    \[ \Pr \big[~ x_0 \neq x_1 \land H_\lambda(x_0) = H_\lambda(x_1) ~\big|~
+        k \getsr \calK;~ (x_0, x_1) \gets \calA(1^\lambda, H_k)
+        ~\big] = 1 .\]
 \end{definition}
 
 \subsection{Accumulators}
@@ -46,37 +46,39 @@ preferred to be sub-linear.
 
 \begin{definition}[Accumulator]
     A \emph{variable-length} accumulator scheme $\Piacc$ for an input domain
-    $\calX_{\lambda, \in \N}$, proof space $\calU_{\lambda \in \N}$, and commitment space
+    $\calD_{\lambda, \in \N}$, proof space $\calU_{\lambda \in \N}$, and commitment space
     $\calC_{\lambda \in \N}$ consists of the set of efficient algorithms
     $\Piacc = (\Commit, \Prove,
     \allowbreak \Verify)$ with the following syntax:
     \begin{itemize}
-        \item $\Commit(1^\lambda, x_1, \ldots, x_\ell) \to c$: On input a
+        \item $\Commit(1^\lambda, x_0, \ldots, x_{\ell-1}) \to c$: On input a
             security parameter $\lambda$ and a variable sequence of inputs
-            $x_1, \ldots, x_\ell \in \calX_\lambda$, the commitment algorithm
+            $x_0, \ldots, x_{\ell-1} \in \calD_\lambda$, the commitment algorithm
             returns a commitment $c \in \calC_\lambda$.
 
-        \item $\Prove(1^\lambda, x_1, \ldots, x_\ell, i) \to u$: On input a
-            security parameter $\lambda$, a variable sequence of inputs $x_1,
-            \ldots, x_\ell \in \calX_\lambda$, and an index $i \in [\ell]$, the
+        \item $\Prove(1^\lambda, x_0, \ldots, x_{\ell-1}, i) \to u$: On input a
+            security parameter $\lambda$, a variable sequence of inputs $x_0,
+            \ldots, x_{\ell-1} \in \calD_\lambda$, and an index $i \in [\ell]$, the
             proving algorithm returns a proof of inclusion $u \in \calU_\lambda$.
 
         \item $\Verify(c, x, u) \to b$: On input a commitment $c \in
-            \calC_\lambda$, input $x \in \calX_\lambda$, and proof $u \in
+            \calC_\lambda$, input $x \in \calD_\lambda$, and proof $u \in
             \calU_\lambda$, the verification algorithm either accepts (returns
             1) or rejects (returns 0).
     \end{itemize}
 \end{definition}
 
 \begin{definition}[Correctness]
+    \label{def:correctness}
     An accumulator scheme $\Piacc = (\Commit, \Prove, \Verify)$ for an input
-    domain $\calX_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
+    domain $\calD_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
     commitment space $\calC_{\lambda \in \N}$ satisfies \emph{correctness} if
-    for all $\lambda, \ell \in \N$, inputs $x_1, \ldots, x_\ell \in
-    \calX_\lambda$, and index $i \in [\ell]$, we have
-    \[ \Pr \Big[~ c \gets \Commit(1^\lambda, x_1, \ldots, x_\ell) ;~ u \gets
-        \Prove(1^\lambda, x_1, \ldots, x_\ell, i) ;~ \Verify(c, x_i, u) = 1
-        ~\Big] = 1 .\]
+    for all $\lambda, \ell \in \N$, inputs $x_0, \ldots, x_{\ell-1} \in
+    \calD_\lambda$, and index $i \in [\ell]$, we have
+    \[ \Pr \left[~ \Verify(c, x_i, u) = 1 ~\Bigg|~ \begin{aligned} c \gets
+        \Commit(1^\lambda, x_0, \ldots, x_{\ell-1}) \\ u \gets \Prove(1^\lambda,
+        x_0, \ldots, x_{\ell-1}, i) \end{aligned} ~\right] = 1 .\]
+
 \end{definition}
 
 \newcommand{\polylog}{\ms{polylog}}
@@ -84,19 +86,22 @@ preferred to be sub-linear.
 \newcommand{\logg}{{\ms{log}}}
 
 \begin{definition}[Compactness]
+    \label{def:compactness}
     An accumulator scheme $\Piacc = (\Commit, \Prove, \Verify)$ for an input
-    domain $\calX_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
-    commitment space $\calC \in {\lambda \in \N}$ satisfies \emph{compactness}
-    if for all $\lambda, \ell \in \N$, inputs $x_1 \ldots, x_\ell \in
-    \calX_\lambda$, and index $i \in [\ell]$, there exist constant $\logg_\calC:
+    domain $\calD_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
+    commitment space $\calC_{\lambda \in \N}$ satisfies \emph{compactness}
+    if for all $\lambda, \ell \in \N$, inputs $x_0 \ldots, x_{\ell-1} \in
+    \calD_\lambda$, and index $i \in [\ell]$, there exist constant $\logg_\calC:
     \N \to \N$ and logarithmic functions $\logg_{\calU}: \N \times \N \to \N$
     such that
-    \[ \Pr \Big[~ c \gets \Commit(1^\lambda, x_1, \ldots, x_\ell) ;~ u \gets
-        \Prove(1^\lambda, x_1, \ldots, x_\ell, i) ;~ |c| = \log_\calC(\lambda) \land |u|
-        = \log_\calU(\lambda, \ell) ~\Big] = 1 .\]
+    \[ \Pr \left[~ |c| = \log_\calC(\lambda) \land |u| = \log_\calU(\lambda,
+        \ell) ~\Bigg|~ \begin{aligned} c \gets \Commit(1^\lambda, x_0, \ldots,
+        x_{\ell-1}) \\ u \gets \Prove(1^\lambda, x_0, \ldots, x_{\ell-1}, i) 
+        \end{aligned} ~\right] = 1 .\]
 \end{definition}
 
 \begin{definition}[Soundness]
+    \label{def:soundness}
     To be written...
 \end{definition}
 
