@@ -1,3 +1,15 @@
 \section{Introduction}
-
-To be written...
+Light clients on Solana require a way to verify the status of a transaction without 
+having to manually download the ledger and replay the transactions or rely on trusted 
+RPCs for transaction confirmation. RPCs already have access to ledger and hence they
+can replay any transactions without any additional efforts. This is the current state 
+of affairs and there's no other way for a light client to locally verify the execution 
+of a particular transaction of interest. We propose a better way to cryptographically
+verify the confirmation status of a transaction by introducing transaction receipts 
+and a merkle tree based commitment scheme for these receipts to be constructed per slot.
+A transaction receipt is a data structure representing the execution of a transaction. 
+More specifically it contains the signature and the execution status of the transaction. 
+We construct a binary merkle tree and with the receipts as leaves. The leaves and the 
+intermediate nodes are prefixed to differentiate between them. In the further sections 
+we produce a formal proof of security of the commitment scheme along with addressing 
+the correctness, soundness and compactness of the scheme.
