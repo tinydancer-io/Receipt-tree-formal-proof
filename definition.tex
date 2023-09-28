@@ -102,6 +102,15 @@ preferred to be sub-linear.
 
 \begin{definition}[Soundness]
     \label{def:soundness}
-    To be written...
+    An accumulator scheme $\Piacc = (\Commit, \Prove, \Verify)$ for an input
+    domain $\calD_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
+    commitment space $\calC_{\lambda \in \N}$ satisfies \emph{soundness} if
+    for all $\lambda, \ell \in \N$, inputs $x_0, \ldots, x_{\ell-1} \in
+    \calD_\lambda$, adversaries \calA, and index $i \in [\ell]$, there exists 
+    a negligible function \varepsilon(.)
+
+    \[ \Pr \Big[~ c \gets \Commit(1^\lambda, x_1, \ldots, x_\ell) ;~ *u \gets
+        \Prove(1^\lambda, *x_1, \ldots, *x_\ell, i) \gets \calA;~ \Verify(*c, *x_i, *u) = 1
+        ~\Big] \leq \varepsilon(\lambda) .\]
 \end{definition}
 
