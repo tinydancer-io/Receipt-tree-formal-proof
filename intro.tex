@@ -1,8 +1,8 @@
 \section{Introduction}
-Light clients on Solana require a way to verify the status of a transaction without 
-having to manually download the ledger and replay the transactions or rely on trusted 
-RPCs for transaction confirmation. RPCs already have access to ledger and hence they
-can replay any transactions without any additional efforts. This is the current state 
+Light clients on the Solana blockchain require a way to verify the status of a transaction 
+without having to manually download the ledger and replay the transactions or rely on 
+trusted RPCs for transaction confirmation. RPCs already have access to ledger and hence 
+they can replay any transactions without any additional efforts. This is the current state 
 of affairs and there's no other way for a light client to locally verify the execution 
 of a particular transaction of interest. We propose a better way to cryptographically
 verify the confirmation status of a transaction by introducing transaction receipts 
