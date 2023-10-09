@@ -3,6 +3,7 @@
 To be written...
 
 \newcommand{\RecursiveHash}{\ms{RecursiveHash}}
+\newcommand{\RecursiveVerify}{\ms{RecursiveVerify}}
 \newcommand{\croot}{c_{\ms{root}}}
 \newcommand{\cleft}{c_{\ms{left}}}
 \newcommand{\cright}{c_{\ms{right}}}
@@ -18,7 +19,7 @@ To be written...
   \{ H_k: \calD \times \calD \to \calD\}_{k \in \calK}$ for a key space
   $\calK_{\lambda \in \N}$. We construct an accumulator scheme $\Piacc =
   (\Commit, \Prove, \Verify)$ with domain $\calX$, commitment space $\calY$, and
-  proof space $\calD^*$ as follows:
+  proof space $\calD^*$ for $k \getsr \calK$ as follows:
   \begin{itemize}
     \item $\Commit(1^\lambda, x_0, \ldots, x_{\ell-1}) \to c$: On input the
       security parameter $\lambda$, sequence of inputs $x_0, \ldots,
@@ -32,14 +33,14 @@ To be written...
             \item Otherwise, let $\midi \gets \lceil (\ell-1)/2 \rceil$. The
               function recursively computes $\cleft \gets \RecursiveHash(x_0,
               \ldots, x_\midi)$, $\cright \gets \RecursiveHash(x_{\midi + 1},
-              \allowbreak x_{\ell-1})$, and then returns $H(\allowbreak \cleft,
+              \allowbreak x_{\ell-1})$, and then returns $H_k(\allowbreak \cleft,
               \allowbreak \cright)$.
           \end{itemize}
       \end{description}
-      The commit algorithm finally computes $c \gets H(\croot, \ell)$ and return
+      The commit algorithm finally computes $c \gets H_k(\croot, \ell)$ and return
       $c$ as the commitment.
 
-    \item $\Prove(1^\lambda, x_1, \ldots, x_\ell, i) \to \pi$: On input the security
+    \item $\Prove(1^\lambda, x_0, \ldots, x_{\ell-1}, i) \to u$: On input the security
       parameter $\lambda$, set of inputs $x_0, \ldots, x_{\ell-1}$, and an index
       $i \in [\ell]$, the proving algorithm proceeds as follows. It maintains a
       set $S \subset \calD \times \{\tagleft, \tagright\}$ of pairs of domain
@@ -64,26 +65,28 @@ To be written...
                   \midi)$.
               \end{itemize}
           \end{itemize}
-          The proving algorithm sets $\pi \gets (S, \ell)$ and return $\pi$ as
+          The proving algorithm sets $u \gets (S, \ell)$ and return $u$ as
           the proof.
       \end{description}
 
-    \item $\Verify(c, x, \pi) \to b$: On input a commitment $c \in \calD$, input
-      $x \in \calD$, and proof $\pi = (\ell, \pi)$, the verification algorithm
-      first parses the proof $\pi = \{ (c_1, \tau_1), \ldots, (c_t, \tau_t) \}$
-      for some $t \in \N$. Then, for $i = 1, \ldots, t$, it iteratively computes
-      the hash as follows:
-      \begin{itemize}
-        \item Let $h_0 \gets x$.
-        \item For $(c_1, \tau_1), \ldots, (c_t, \tau_t)$, sequentially compute
-          in order:
+    \item $\Verify(c, x, u) \to b$: On input a commitment $c \in \calD$, input
+      $x \in \calD$, and proof $u = (S, \ell)$, the verification algorithm
+      first parses the proof $S = \{ (c_1, \tau_1), \ldots, (c_t, \tau_t) \}$
+      for some $t \in \N$. Then it sets $h \gets x$ and invokes the recursive
+      algorithm $\croot \gets \RecursiveVerify(h, (c_1, \tau_1), \ldots, (c_t,
+      \tau_t))$ that is defined as follows:
+      \begin{description}
+        \item $\RecursiveVerify(h, (c_1, \tau_1), \ldots, (c_i, \tau_i))$:
           \begin{itemize}
-            \item If $\tau_i = \tagleft$, set $h_i
-              \gets H(c_i, h_{i-1})$.
-            \item If $\tau_i = \tagright$, set $h_i \gets H(h_{i-1}, c_i)$.
+            \item If $\tau_i = \tagleft$, then set $h \gets H_k(h, c_i)$ and
+              recursively compute $\RecursiveVerify(h, \allowbreak (c_1,
+              \tau_1), \allowbreak \ldots, (c_{i-1}, \tau_{i-1}))$.
+            \item If $\tau_i = \tagright$, then set $h \gets H_k(c_i, h)$ and
+              recursively compute $\RecursiveVerify(h, \allowbreak (c_1,
+              \tau_1), \allowbreak \ldots, (c_{i-1}, \tau_{i-1}))$.
           \end{itemize}
-      \end{itemize}
-      Finally, the verification algorithm computes and verifies that $H(h_t,
+      \end{description}
+      Finally, the verification algorithm computes and verifies that $H_k(\croot,
       \ell) = c$. If the equality holds, the verification algorithm accepts
       (returns 1) and otherwise, it rejects (returns 0).
 

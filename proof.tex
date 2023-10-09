@@ -1,15 +1,99 @@
 \section{Proofs}
 
-To be written...
-
 \subsection{Correctness}
 
-To be written...
+Let $\Piacc = (\Commit, \Prove, \Verify)$ be the accumulator scheme in
+Construction~\ref{cons:main}. 
+We first show a relation on the recursive subroutines that the algorithms
+$\Commit$, $\Prove$, and $\Verify$ utilize: for any set of inputs $x_0 \ldots,
+x_\ell \in \calD_\lambda$ and index $i \in [\ell]$, setting $S \gets \{ \}$ and
+$\RecursiveProve(S, x_0, \ldots, x_{\ell-1}, i)$, we have
+\[ \RecursiveHash(x_0, \ldots, x_{\ell-1}) = \RecursiveVerify(x_i, S) .\]
+We prove the relation by induction.
+\begin{itemize}
+  \item Let $\ell = 1$. In this case, we must have $i=0$ and by construction, we
+    have:
+    \begin{itemize}
+      \item $\RecursiveHash(x_0) = x_0$,
+      \item $\RecursiveProve(S, x_0)$ is trivial and hence $S$ remains an empty
+        set $S = \{ \}$.
+      \item $\RecursiveVerify(x_0, S)$ returns $x_0$ since $S$ is empty.
+    \end{itemize}
+    Hence we have $\RecursiveHash(x_0) = \RecursiveVerify(x_0, S)$.
+  \item Consider $\ell = k$ for some $k \in \N$ assuming that the relation holds
+    for all $\ell < k$. Without loss of generality, let $i \in [\ell]$ be any
+    index for which $i \le \midi$ where $\midi \gets \lceil (\ell - 1) / 2
+    \rceil$. 
+    \begin{itemize}
+      \item By definition, the algorithm $\RecursiveHash(x_0, \ldots,
+        x_{\ell-1})$ is equivalent to
+        \[ H_k \big( \RecursiveHash(x_0, \ldots, \allowbreak x_{\midi}),
+        \allowbreak \RecursiveHash(x_{\midi+1}, \ldots, x_{\ell-1}) \big) .\]
+      \item By definition, the algorithm $\RecursiveProve(S, x_0, \ldots,
+        x_{\ell-1}, i)$ computes the hash $\cright \gets \RecursiveHash(x_{\midi
+        + 1}, \ldots, x_{\ell-1})$ and adds $S' \gets S \cup \{ (\cright,
+        \tagright) \}$. Then, by definition, the algorithm
+        $\RecursiveVerify(x_i, S')$ returns
+        \[ \croot = H_k \big( \RecursiveVerify(x_i, S), \cright \big) .\]
+        By induction, we have $\RecursiveVerify(x_i, S) = \RecursiveHash(x_0,
+        \ldots, x_{\midi})$. Hence, the relation
+        \[ \RecursiveHash(x_0, \ldots, x_{\ell-1}) = \RecursiveVerify(x_i, S)
+        \]
+        holds as desired.
+    \end{itemize}
+\end{itemize}
+
+\noindent
+Now, fix any set of inputs $x_0 \ldots, x_\ell \in
+\calD_\lambda$, index $i \in [\ell]$, commitment $c \gets \Commit(1^\lambda,
+x_0, \ldots, x_{\ell-1})$, and proof $u = (S, \ell) \gets \Prove(1^\lambda, x_0,
+\ldots, \allowbreak x_{\ell-1}, \allowbreak i)$. The final commitment that is
+produced by $\Commit(1^\lambda, x_0, \ldots, x_{\ell-1})$ is equivalent to
+\[ H_k \big( \RecursiveHash(x_0, \ldots, x_{\ell-1}), \ell \big) .\]
+By the relation above, this is equivalent to
+\[ H_k \big( \RecursiveVerify(x_i, S), \ell \big) \]
+for initially setting $S \gets \{ \}$, and computing $\RecursiveProve(S, x_0,
+\ldots, x_{\ell-1}, i)$. This is precisely the
+condition that the verification algorithm $\Verify(c, x, u)$ checks. The
+correctness follows.
 
 \subsection{Compactness}
 
-To be written...
+Let $\Piacc = (\Commit, \Prove, \Verify)$ be the accumulator scheme in
+Construction~\ref{cons:main}. Fix any set of inputs $x_0, \ldots, x_\ell \in
+\calD_\lambda$ and let $c \gets \Commit(1^\lambda, x_0, \ldots, x_{\ell-1})$ be
+an accumulated commitment. By construction, we have $c \in \calD$, which means
+that $\|c\| = \poly(\lambda)$ and independent of $\ell$.
+
+For any $i \in [\ell]$, let $u \gets \Prove(1^\lambda, x_0, \ldots, x_{\ell-1},
+i)$ be an inclusion proof. By construction, the length of $u$ is determined by
+the cardinality of $S$, which is equal to the depth of the nested recursive
+calls invoked by $\RecursiveProve(S, x_0, \ldots, x_{\ell-1}, i)$. By design,
+the recursive function $\RecursiveProve(S, x_0, \ldots, x_{\ell-1}, i)$
+decreases the sequences of inputs by half on each recursive call: it either
+invokes $\RecursiveProve(S, x_0, \ldots, x_\midi, i-\midi)$ or $\RecursiveProve(S,
+x_{\midi+1}, \ldots, x_{\ell-1})$ for $\midi \gets \lceil (\ell-1)/2 \rceil$
+depending on whether $i > \midi$ or $i \le \midi$. Therefore, the nested recursive
+calls are bounded logarithmically on the length of $\ell$ and hence $|u| =
+\poly(\lambda) \cdot \log(\ell)$ as desired.
+
 
 \subsection{Soundness}
 
-To be writtten...
+Let $\Piacc = (\Commit, \Prove, \Verify)$ be the accumulator scheme in
+Construction~\ref{cons:main} that uses a hash function $H_k$ for $k \getsr
+\calK$ sampled from a collision resistant family of hash function $\calH_\calK$.
+To prove soundness of $\Piacc$, we construct an algorithm $\calB$ that produces
+a collision in $H_k$ using any adversary $\calA$ that breaks accumulator
+soundness.
+
+\newcommand{\ellstar}{\ell^*}
+
+Fix any adverasry~$\calA$ in the soundness security game and let $(x_0,
+\ldots, x_{\ell-1})$, $\xstar$, and $\ustar$ be a forgery produced by $\calA$.
+Algorithm~$\calB$ parses the proof $\ustar = (S = (c_0, \tau_0), \ldots, (c_t,
+\tau_t), \ellstar)$ and proceeds as follows:
+\begin{itemize}
+  \item If 
+\end{itemize}
+

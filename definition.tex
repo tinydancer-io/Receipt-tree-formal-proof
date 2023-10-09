@@ -85,17 +85,18 @@ preferred to be sub-linear.
 \newcommand{\len}{\ms{len}}
 \newcommand{\logg}{{\ms{log}}}
 
+\newcommand{\xstar}{x^*}
+\newcommand{\ustar}{u^*}
+
 \begin{definition}[Compactness]
     \label{def:compactness}
     An accumulator scheme $\Piacc = (\Commit, \Prove, \Verify)$ for an input
     domain $\calD_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
     commitment space $\calC_{\lambda \in \N}$ satisfies \emph{compactness}
     if for all $\lambda, \ell \in \N$, inputs $x_0 \ldots, x_{\ell-1} \in
-    \calD_\lambda$, and index $i \in [\ell]$, there exist constant $\logg_\calC:
-    \N \to \N$ and logarithmic functions $\logg_{\calU}: \N \times \N \to \N$
-    such that
-    \[ \Pr \left[~ |c| = \log_\calC(\lambda) \land |u| = \log_\calU(\lambda,
-        \ell) ~\Bigg|~ \begin{aligned} c \gets \Commit(1^\lambda, x_0, \ldots,
+    \calD_\lambda$, and index $i \in [\ell]$, we have
+    \[ \Pr \left[~ |c| = \poly(\lambda) \land |u| = \poly(\lambda) \cdot \log
+        \ell ~\Bigg|~ \begin{aligned} c \gets \Commit(1^\lambda, x_0, \ldots,
         x_{\ell-1}) \\ u \gets \Prove(1^\lambda, x_0, \ldots, x_{\ell-1}, i) 
         \end{aligned} ~\right] = 1 .\]
 \end{definition}
@@ -104,13 +105,13 @@ preferred to be sub-linear.
     \label{def:soundness}
     An accumulator scheme $\Piacc = (\Commit, \Prove, \Verify)$ for an input
     domain $\calD_{\lambda \in \N}$, proof space $\calU_{\lambda \in \N}$, and
-    commitment space $\calC_{\lambda \in \N}$ satisfies \emph{soundness} if
-    for all $\lambda, \ell \in \N$, inputs $x_0, \ldots, x_{\ell-1} \in
-    \calD_\lambda$, adversaries \calA, and index $i \in [\ell]$, there exists 
-    a negligible function \varepsilon(.)
-
-    \[ \Pr \Big[~ c \gets \Commit(1^\lambda, x_1, \ldots, x_\ell) ;~ *u \gets
-        \Prove(1^\lambda, *x_1, \ldots, *x_\ell, i) \gets \calA;~ \Verify(*c, *x_i, *u) = 1
-        ~\Big] \leq \varepsilon(\lambda) .\]
+    commitment space $\calC_{\lambda, \in \N}$ satisfies \emph{soundness} if
+    there exists a negligible function $\negl(\cdot)$ such that for any
+    efficient adversary $\calA$, we have
+    \[ \Pr\left[~ \Verify(c, \xstar, \ustar) = 1 \land \xstar \notin \{x_0,
+        \ldots, x_{\ell-1}\} ~\Bigg|~ \begin{aligned}
+    \big((x_0, \ldots, x_{\ell-1}), \xstar, \ustar \big) \gets \calA(1^\lambda)
+    \\ c \gets \Commit(1^\lambda, x_0, \ldots, x_{\ell-1}) \end{aligned} ~\right] =
+    \negl(\lambda) .\]
 \end{definition}
 
